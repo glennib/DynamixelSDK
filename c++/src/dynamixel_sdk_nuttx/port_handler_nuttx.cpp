@@ -38,9 +38,10 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
-#include <linux/serial.h>
+//#include <linux/serial.h>
+#include <serial.h>
 
-#include "dynamixel_sdk_linux/port_handler_nuttx.h"
+#include "dynamixel_sdk_nuttx/port_handler_nuttx.h"
 
 #define LATENCY_TIMER   4  // msec (USB latency timer)
 
