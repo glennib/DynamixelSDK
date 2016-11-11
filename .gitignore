@@ -43,3 +43,8 @@
 
 # HTML
 *.html
+
+
+# Sublime
+*.sublime-workspace
+
