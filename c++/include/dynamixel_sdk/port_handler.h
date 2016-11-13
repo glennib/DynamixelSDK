@@ -33,7 +33,9 @@
 #ifndef DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_PORTHANDLER_H_
 #define DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_PORTHANDLER_H_
 
-#ifdef __linux__
+#ifdef __PX4_NUTTX
+#define WINDECLSPEC
+#elif defined(__linux__)
 #define WINDECLSPEC
 #elif defined(_WIN32) || defined(_WIN64)
 #ifdef WINDLLEXPORT

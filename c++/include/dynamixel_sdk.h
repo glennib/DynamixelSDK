@@ -49,5 +49,9 @@
   #include "dynamixel_sdk_windows/port_handler_windows.h"
 #endif
 
+#if __PX4_NUTTX
+  #include "dynamixel_sdk_nuttx/port_handler_nuttx.h"
+#endif
+
 
 #endif /* DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_DYNAMIXELSDK_H_ */

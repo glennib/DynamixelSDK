@@ -30,8 +30,8 @@
 
 /* Author: zerom, Ryu Woon Jung (Leon) */
 
-#ifndef DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERLINUX_H_
-#define DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERLINUX_H_
+#ifndef DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERNUTTX_H_
+#define DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERNUTTX_H_
 
 
 #include "dynamixel_sdk/port_handler.h"
@@ -39,7 +39,7 @@
 namespace dynamixel
 {
 
-class PortHandlerLinux : public PortHandler
+class PortHandlerNuttx : public PortHandler
 {
  private:
   int     socket_fd_;
@@ -58,8 +58,8 @@ class PortHandlerLinux : public PortHandler
   double  getTimeSinceStart();
 
  public:
-  PortHandlerLinux(const char *port_name);
-  virtual ~PortHandlerLinux() { closePort(); }
+  PortHandlerNuttx(const char *port_name);
+  virtual ~PortHandlerNuttx() { closePort(); }
 
   bool    openPort();
   void    closePort();
@@ -84,4 +84,4 @@ class PortHandlerLinux : public PortHandler
 }
 
 
-#endif /* DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERLINUX_H_ */
+#endif /* DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_LINUX_PORTHANDLERNUTTX_H_ */

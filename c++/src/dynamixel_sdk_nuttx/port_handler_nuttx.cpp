@@ -38,8 +38,10 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
-//#include <linux/serial.h>
-#include <serial.h>
+
+#ifdef __PX4_NUTTX
+ #include <nuttx/serial/serial.h>
+#endif
 
 #include "dynamixel_sdk_nuttx/port_handler_nuttx.h"
 
@@ -47,7 +49,7 @@
 
 using namespace dynamixel;
 
-PortHandlerLinux::PortHandlerLinux(const char *port_name)
+PortHandlerNuttx::PortHandlerNuttx(const char *port_name)
   : socket_fd_(-1),
     baudrate_(DEFAULT_BAUDRATE_),
     packet_start_time_(0.0),
@@ -58,35 +60,35 @@ PortHandlerLinux::PortHandlerLinux(const char *port_name)
   setPortName(port_name);
 }
 
-bool PortHandlerLinux::openPort()
+bool PortHandlerNuttx::openPort()
 {
   return setBaudRate(baudrate_);
 }
 
-void PortHandlerLinux::closePort()
+void PortHandlerNuttx::closePort()
 {
   if(socket_fd_ != -1)
     close(socket_fd_);
   socket_fd_ = -1;
 }
 
-void PortHandlerLinux::clearPort()
+void PortHandlerNuttx::clearPort()
 {
   tcflush(socket_fd_, TCIOFLUSH);
 }
 
-void PortHandlerLinux::setPortName(const char *port_name)
+void PortHandlerNuttx::setPortName(const char *port_name)
 {
   strcpy(port_name_, port_name);
 }
 
-char *PortHandlerLinux::getPortName()
+char *PortHandlerNuttx::getPortName()
 {
   return port_name_;
 }
 
 // TODO: baud number ??
-bool PortHandlerLinux::setBaudRate(const int baudrate)
+bool PortHandlerNuttx::setBaudRate(const int baudrate)
 {
   int baud = getCFlagBaud(baudrate);
 
@@ -105,41 +107,41 @@ bool PortHandlerLinux::setBaudRate(const int baudrate)
   }
 }
 
-int PortHandlerLinux::getBaudRate()
+int PortHandlerNuttx::getBaudRate()
 {
   return baudrate_;
 }
 
-int PortHandlerLinux::getBytesAvailable()
+int PortHandlerNuttx::getBytesAvailable()
 {
   int bytes_available;
-  ioctl(socket_fd_, FIONREAD, &bytes_available);
+  ioctl(socket_fd_, FIONREAD, (unsigned long)&bytes_available);
   return bytes_available;
 }
 
-int PortHandlerLinux::readPort(uint8_t *packet, int length)
+int PortHandlerNuttx::readPort(uint8_t *packet, int length)
 {
   return read(socket_fd_, packet, length);
 }
 
-int PortHandlerLinux::writePort(uint8_t *packet, int length)
+int PortHandlerNuttx::writePort(uint8_t *packet, int length)
 {
   return write(socket_fd_, packet, length);
 }
 
-void PortHandlerLinux::setPacketTimeout(uint16_t packet_length)
+void PortHandlerNuttx::setPacketTimeout(uint16_t packet_length)
 {
   packet_start_time_  = getCurrentTime();
   packet_timeout_     = (tx_time_per_byte * (double)packet_length) + (LATENCY_TIMER * 2.0) + 2.0;
 }
 
-void PortHandlerLinux::setPacketTimeout(double msec)
+void PortHandlerNuttx::setPacketTimeout(double msec)
 {
   packet_start_time_  = getCurrentTime();
   packet_timeout_     = msec;
 }
 
-bool PortHandlerLinux::isPacketTimeout()
+bool PortHandlerNuttx::isPacketTimeout()
 {
   if(getTimeSinceStart() > packet_timeout_)
   {
@@ -149,14 +151,14 @@ bool PortHandlerLinux::isPacketTimeout()
   return false;
 }
 
-double PortHandlerLinux::getCurrentTime()
+double PortHandlerNuttx::getCurrentTime()
 {
 	struct timespec tv;
 	clock_gettime( CLOCK_REALTIME, &tv);
 	return ((double)tv.tv_sec*1000.0 + (double)tv.tv_nsec*0.001*0.001);
 }
 
-double PortHandlerLinux::getTimeSinceStart()
+double PortHandlerNuttx::getTimeSinceStart()
 {
   double time;
 
@@ -167,14 +169,14 @@ double PortHandlerLinux::getTimeSinceStart()
   return time;
 }
 
-bool PortHandlerLinux::setupPort(int cflag_baud)
+bool PortHandlerNuttx::setupPort(int cflag_baud)
 {
   struct termios newtio;
 
   socket_fd_ = open(port_name_, O_RDWR|O_NOCTTY|O_NONBLOCK);
   if(socket_fd_ < 0)
   {
-    printf("[PortHandlerLinux::SetupPort] Error opening serial port!\n");
+    printf("[PortHandlerNuttx::SetupPort] Error opening serial port!\n");
     return false;
   }
 
@@ -195,13 +197,14 @@ bool PortHandlerLinux::setupPort(int cflag_baud)
   return true;
 }
 
-bool PortHandlerLinux::setCustomBaudrate(int speed)
+bool PortHandlerNuttx::setCustomBaudrate(int speed)
 {
+  #if defined(__PX4_NUTTX) && defined(TODO_MUST_IMPLEMENT)
   // try to set a custom divisor
   struct serial_struct ss;
   if(ioctl(socket_fd_, TIOCGSERIAL, &ss) != 0)
   {
-    printf("[PortHandlerLinux::SetCustomBaudrate] TIOCGSERIAL failed!\n");
+    printf("[PortHandlerNuttx::SetCustomBaudrate] TIOCGSERIAL failed!\n");
     return false;
   }
 
@@ -211,22 +214,27 @@ bool PortHandlerLinux::setCustomBaudrate(int speed)
 
   if(closest_speed < speed * 98 / 100 || closest_speed > speed * 102 / 100)
   {
-    printf("[PortHandlerLinux::SetCustomBaudrate] Cannot set speed to %d, closest is %d \n", speed, closest_speed);
+    printf("[PortHandlerNuttx::SetCustomBaudrate] Cannot set speed to %d, closest is %d \n", speed, closest_speed);
     return false;
   }
 
   if(ioctl(socket_fd_, TIOCSSERIAL, &ss) < 0)
   {
-    printf("[PortHandlerLinux::SetCustomBaudrate] TIOCSSERIAL failed!\n");
+    printf("[PortHandlerNuttx::SetCustomBaudrate] TIOCSSERIAL failed!\n");
     return false;
   }
 
   tx_time_per_byte = (1000.0 / (double)speed) * 10.0;
   return true;
+
+  #else
+  return true;
+  #endif
 }
 
-int PortHandlerLinux::getCFlagBaud(int baudrate)
+int PortHandlerNuttx::getCFlagBaud(int baudrate)
 {
+  #if defined(TODO_MUST_IMPLEMENT)
   switch(baudrate)
   {
     case 9600:
@@ -268,4 +276,7 @@ int PortHandlerLinux::getCFlagBaud(int baudrate)
     default:
       return -1;
   }
+  #else
+    return -1;
+  #endif
 }

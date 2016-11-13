@@ -44,6 +44,10 @@
   #include "dynamixel_sdk_windows/port_handler_windows.h"
 #endif
 
+#ifdef __PX4_NUTTX
+  #include "dynamixel_sdk_nuttx/port_handler_nuttx.h"
+#endif
+
 using namespace dynamixel;
 
 PortHandler *PortHandler::getPortHandler(const char *port_name)
@@ -54,5 +58,9 @@ PortHandler *PortHandler::getPortHandler(const char *port_name)
 
 #if defined(_WIN32) || defined(_WIN64)
   return (PortHandler *)(new PortHandlerWindows(port_name));
+#endif
+
+#ifdef __PX4_NUTTX
+  return (PortHandler *)(new PortHandlerNuttx(port_name));
 #endif
 }
