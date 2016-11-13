@@ -39,6 +39,8 @@
 namespace dynamixel
 {
 
+// Consider looking at NuttX/nuttx/drivers/serial/serial.c for implementing these features.
+// The header is here: NuttX/nuttx/include/nuttx/serial/serial.h
 class PortHandlerNuttx : public PortHandler
 {
  private:
@@ -49,36 +51,41 @@ class PortHandlerNuttx : public PortHandler
   double  packet_start_time_;
   double  packet_timeout_;
   double  tx_time_per_byte;
+  unsigned long gpio_;
+  
+  static constexpr int     MAX_GPIO_ATTEMPTS = 10;
 
-  bool    setupPort(const int cflag_baud);
-  bool    setCustomBaudrate(int speed);
-  int     getCFlagBaud(const int baudrate);
+  bool    setupPort(const int cflag_baud); // Implemented? - glenn
+  bool    setCustomBaudrate(int speed); // Implemented - we don't use this. Will always return error
+  int     getCFlagBaud(const int baudrate); // Implemented - glenn
 
-  double  getCurrentTime();
-  double  getTimeSinceStart();
+  double  getCurrentTime(); // I think this works untouched - glenn
+  double  getTimeSinceStart(); // This too
+  
+  bool    controlGpio(bool transmit); // Custom. This should enable/disable gpio
 
  public:
-  PortHandlerNuttx(const char *port_name);
-  virtual ~PortHandlerNuttx() { closePort(); }
+  PortHandlerNuttx(const char *port_name, uint8_t gpio); // This works untouched
+  virtual ~PortHandlerNuttx() { closePort(); } // This too
 
-  bool    openPort();
-  void    closePort();
-  void    clearPort();
+  bool    openPort(); // This should work untouched - glenn
+  void    closePort(); // Implemented - glenn
+  void    clearPort(); // works untouched - glenn
 
-  void    setPortName(const char *port_name);
-  char   *getPortName();
+  void    setPortName(const char *port_name); // works untouched
+  char   *getPortName(); // works untouched - glenn
 
-  bool    setBaudRate(const int baudrate);
-  int     getBaudRate();
+  bool    setBaudRate(const int baudrate); // should work untouched - glenn
+  int     getBaudRate(); // works untouched - glenn
 
-  int     getBytesAvailable();
+  int     getBytesAvailable(); // i assume this will work untouched - glenn
 
-  int     readPort(uint8_t *packet, int length);
-  int     writePort(uint8_t *packet, int length);
+  int     readPort(uint8_t *packet, int length); // Implemented? - glenn
+  int     writePort(uint8_t *packet, int length); // Implemented - glenn
 
-  void    setPacketTimeout(uint16_t packet_length);
+  void    setPacketTimeout(uint16_t packet_length); // Since getCurrentTime works, this should work
   void    setPacketTimeout(double msec);
-  bool    isPacketTimeout();
+  bool    isPacketTimeout(); // should work untouched
 };
 
 }

@@ -50,7 +50,7 @@
 
 using namespace dynamixel;
 
-PortHandler *PortHandler::getPortHandler(const char *port_name)
+PortHandler *PortHandler::getPortHandler(const char *port_name, uint8_t gpio)
 {
 #ifdef __linux__
   return (PortHandler *)(new PortHandlerLinux(port_name));
@@ -61,6 +61,6 @@ PortHandler *PortHandler::getPortHandler(const char *port_name)
 #endif
 
 #ifdef __PX4_NUTTX
-  return (PortHandler *)(new PortHandlerNuttx(port_name));
+  return (PortHandler *)(new PortHandlerNuttx(port_name, gpio));
 #endif
 }

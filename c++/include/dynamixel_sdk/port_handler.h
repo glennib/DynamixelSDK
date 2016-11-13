@@ -55,7 +55,7 @@ class WINDECLSPEC PortHandler
  public:
   static const int DEFAULT_BAUDRATE_ = 1000000;
 
-  static PortHandler *getPortHandler(const char *port_name);
+  static PortHandler *getPortHandler(const char *port_name, uint8_t gpio = 1);
 
   bool   is_using_;
 
