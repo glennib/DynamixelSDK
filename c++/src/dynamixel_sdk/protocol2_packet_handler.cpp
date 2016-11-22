@@ -39,6 +39,9 @@
 #include <stdlib.h>
 #include "dynamixel_sdk/protocol2_packet_handler.h"
 
+// Temporary:
+#include <px4_log.h>
+
 #define TXPACKET_MAX_LEN    (4*1024)
 #define RXPACKET_MAX_LEN    (4*1024)
 
@@ -216,14 +219,19 @@ unsigned short Protocol2PacketHandler::updateCRC(uint16_t crc_accum, uint8_t *da
 void Protocol2PacketHandler::addStuffing(uint8_t *packet)
 {
   int i = 0, index = 0;
+  PX4_INFO("in addstuffing before makeword");
   int packet_length_in = DXL_MAKEWORD(packet[PKT_LENGTH_L], packet[PKT_LENGTH_H]);
+  PX4_INFO("After makeword");
   int packet_length_out = packet_length_in;
   uint8_t temp[TXPACKET_MAX_LEN] = {0};
+  PX4_INFO("After makeword");
 
+  PX4_INFO("Before loop1");
   for (uint8_t s = PKT_HEADER0; s <= PKT_LENGTH_H; s++)
     temp[s] = packet[s]; // FF FF FD XX ID LEN_L LEN_H
   //memcpy(temp, packet, PKT_LENGTH_H+1);
   index = PKT_INSTRUCTION;
+  PX4_INFO("Before loop2");
   for (i = 0; i < packet_length_in - 2; i++)  // except CRC
   {
     temp[index++] = packet[i+PKT_INSTRUCTION];
@@ -238,6 +246,7 @@ void Protocol2PacketHandler::addStuffing(uint8_t *packet)
 
 
   //////////////////////////
+  PX4_INFO("Before realloc");
   if (packet_length_in != packet_length_out)
     packet = (uint8_t *)realloc(packet, index * sizeof(uint8_t));
 
@@ -246,6 +255,7 @@ void Protocol2PacketHandler::addStuffing(uint8_t *packet)
   for (uint8_t s = 0; s < index; s++)
     packet[s] = temp[s];
   //memcpy(packet, temp, index);
+  PX4_INFO("Before lobyte");
   packet[PKT_LENGTH_L] = DXL_LOBYTE(packet_length_out);
   packet[PKT_LENGTH_H] = DXL_HIBYTE(packet_length_out);
 }
@@ -283,9 +293,11 @@ int Protocol2PacketHandler::txPacket(PortHandler *port, uint8_t *txpacket)
   port->is_using_ = true;
 
   // byte stuffing for header
+  PX4_INFO("before addStuffing");
   addStuffing(txpacket);
 
   // check max packet length
+  PX4_INFO("Before makeword");
   total_packet_length = DXL_MAKEWORD(txpacket[PKT_LENGTH_L], txpacket[PKT_LENGTH_H]) + 7;
   // 7: HEADER0 HEADER1 HEADER2 RESERVED ID LENGTH_L LENGTH_H
   if (total_packet_length > TXPACKET_MAX_LEN)
@@ -301,13 +313,17 @@ int Protocol2PacketHandler::txPacket(PortHandler *port, uint8_t *txpacket)
   txpacket[PKT_RESERVED]  = 0x00;
 
   // add CRC16
+  PX4_INFO("Before updateCRC");
   uint16_t crc = updateCRC(0, txpacket, total_packet_length - 2);    // 2: CRC16
   txpacket[total_packet_length - 2] = DXL_LOBYTE(crc);
   txpacket[total_packet_length - 1] = DXL_HIBYTE(crc);
 
   // tx packet
+  PX4_INFO("Before clearPort");
   port->clearPort();
+  PX4_INFO("After clearPort, before writePort");
   written_packet_length = port->writePort(txpacket, total_packet_length);
+  PX4_INFO("After writePort");
   if (total_packet_length != written_packet_length)
   {
     port->is_using_ = false;
@@ -433,7 +449,9 @@ int Protocol2PacketHandler::txRxPacket(PortHandler *port, uint8_t *txpacket, uin
   int result = COMM_TX_FAIL;
 
   // tx packet
+  PX4_INFO("In txrxpacket, into txPacket");
   result = txPacket(port, txpacket);
+  PX4_INFO("After txpacket");
   if (result != COMM_SUCCESS)
     return result;
 
@@ -773,6 +791,7 @@ int Protocol2PacketHandler::read4ByteRx(PortHandler *port, uint32_t *data, uint8
 }
 int Protocol2PacketHandler::read4ByteTxRx(PortHandler *port, uint8_t id, uint16_t address, uint32_t *data, uint8_t *error)
 {
+  PX4_INFO("In read4ByteTxRx");
   uint8_t data_read[4] = {0};
   int result = readTxRx(port, id, address, 4, data_read, error);
   if (result == COMM_SUCCESS)
