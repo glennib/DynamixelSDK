@@ -42,8 +42,8 @@
 #define MAX_ID              0xFC    // 252
 
 /* Macro for Control Table Value */
-//#define DXL_MAKEWORD(a, b)  ((unsigned short)(((unsigned char)(((unsigned long)(a)) & 0xff)) | ((unsigned short)((unsigned char)(((unsigned long)(b)) & 0xff))) << 8))
-#define DXL_MAKEWORD(a, b) (static_cast<unsigned short>( static_cast<unsigned char>(static_cast<unsigned long>(a) & 0xff) |  (static_cast<unsigned short>(static_cast<unsigned char>((static_cast<unsigned long>(b) & 0xff))) << 8) ))
+#define DXL_MAKEWORD(a, b)  ((unsigned short)(((unsigned char)(((unsigned long)(a)) & 0xff)) | ((unsigned short)((unsigned char)(((unsigned long)(b)) & 0xff))) << 8))
+//#define DXL_MAKEWORD(a, b) (static_cast<unsigned short>( static_cast<unsigned char>(static_cast<unsigned long>(a) & 0xff) |  (static_cast<unsigned short>(static_cast<unsigned char>((static_cast<unsigned long>(b) & 0xff))) << 8) ))
 #define DXL_MAKEDWORD(a, b) ((unsigned int)(((unsigned short)(((unsigned long)(a)) & 0xffff)) | ((unsigned int)((unsigned short)(((unsigned long)(b)) & 0xffff))) << 16))
 #define DXL_LOWORD(l)       ((unsigned short)(((unsigned long)(l)) & 0xffff))
 #define DXL_HIWORD(l)       ((unsigned short)((((unsigned long)(l)) >> 16) & 0xffff))

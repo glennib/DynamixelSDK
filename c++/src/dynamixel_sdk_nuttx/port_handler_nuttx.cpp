@@ -43,6 +43,10 @@
 
 #include "dynamixel_sdk_nuttx/port_handler_nuttx.h"
 
+// TODO: TEMP
+#include <errno.h>
+#include <px4_log.h>
+
 #define LATENCY_TIMER   4  // msec (USB latency timer)
 
 using namespace dynamixel;
@@ -131,6 +135,8 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
 {
   // See: src/modules/mavlink/mavlink_main.cpp:996 for example
   // This is now equal to the example, and should work, but is not tested - glenn
+
+  // GPIO
   auto counter = MAX_GPIO_ATTEMPTS;
   while (!controlGpio(true) && counter--)
   {
@@ -140,13 +146,19 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
       return -1;
     }
   }
+
+  // UART
   auto res = ::write(socket_fd_, packet, length);
+  PX4_INFO("phn: wrote %d, len: %d", res, length);
+
+
+  // GPIO
   counter = MAX_GPIO_ATTEMPTS;
-  while (!controlGpio(true) && counter--)
+  while (!controlGpio(false) && counter--)
   {
     if (counter <= 0)
     {
-      PX4_ERR("Could not set GPIO");
+      PX4_ERR("Could not clear GPIO");
       return -1;
     }
   }
@@ -247,29 +259,62 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
     return false;
   }
 
-  socket_fd_ = ::open(port_name_, O_RDWR|O_NOCTTY|O_NONBLOCK);
+  // O_NOCTTY is defined as 0
+  socket_fd_ = ::open(port_name_, O_RDWR/*|O_NOCTTY*/|O_NONBLOCK);
 
   if (socket_fd_ < 0)
   {
     PX4_ERR("Error opening serial port.");
     return false;
   }
+  PX4_INFO("serial_fd: %d");
 
 
   struct termios newtio;
 
   bzero(&newtio, sizeof(newtio)); // clear struct for new port settings
-
-  newtio.c_cflag = cflag_baud | CS8 | CLOCAL | CREAD;
+  // cflag should not be set here. use cfsetispeed()
+  newtio.c_cflag = /*cflag_baud |*/ CS8 | CLOCAL | CREAD;
   newtio.c_iflag = IGNPAR;
   newtio.c_oflag      = 0;
   newtio.c_lflag      = 0;
   newtio.c_cc[VTIME]  = 0;
   newtio.c_cc[VMIN]   = 0;
+  cfsetispeed(&newtio, cflag_baud);
+  cfsetospeed(&newtio, cflag_baud);
 
-  // clean the buffer and activate the settings for the port
-  tcflush(socket_fd_, TCIFLUSH);
-  tcsetattr(socket_fd_, TCSANOW, &newtio);
+  // clean the buffer and activate the settings for the
+  // auto flush_state = tcflush(socket_fd_, TCIFLUSH);
+  // if (flush_state < 0)
+  // {
+  //   PX4_ERR("Failed to flush. ERRNO: %d", errno);
+  // }
+
+  struct termios oldtio;
+  if (tcgetattr(socket_fd_, &oldtio) < 0)
+  {
+    PX4_ERR("getattr errno: %d", errno);
+  }
+  PX4_INFO("\n"
+    "c: 0x%02X\n"
+    "i: 0x%02X\n"
+    "o: 0x%02X\n"
+    "l: 0x%02X\n",
+    oldtio.c_cflag,
+    oldtio.c_iflag,
+    oldtio.c_oflag,
+    oldtio.c_lflag);
+
+  auto termios_state = tcsetattr(socket_fd_, TCSANOW, &newtio);
+  if (termios_state < 0)
+  {
+    PX4_ERR("tcsetattr error, errno: %d", errno);
+    return false;
+  }
+  else
+  {
+    PX4_INFO("Set tc attributes");
+  }
 
   tx_time_per_byte = (1000.0 / (double)baudrate_) * 10.0;
   return true;
