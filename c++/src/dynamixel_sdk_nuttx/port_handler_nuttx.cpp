@@ -46,6 +46,7 @@
 // TODO: TEMP
 #include <errno.h>
 #include <px4_log.h>
+#include "errno_str.h"
 
 #define LATENCY_TIMER   4  // msec (USB latency timer)
 
@@ -149,8 +150,14 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
 
   // UART
   auto res = ::write(socket_fd_, packet, length);
-  PX4_INFO("phn: wrote %d, len: %d", res, length);
-
+  if (res < 0)
+  {
+    PX4_ERR("Error writing to port. len: %d errno: %d - %s", length, errno, errno_str(errno));
+  }
+  else
+  {
+    PX4_INFO("phn: wrote %d, len: %d", res, length);
+  }
 
   // GPIO
   counter = MAX_GPIO_ATTEMPTS;
@@ -162,6 +169,7 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
       return -1;
     }
   }
+
   return res;
 }
 
@@ -207,7 +215,7 @@ double PortHandlerNuttx::getTimeSinceStart()
 
 bool
 PortHandlerNuttx::controlGpio(bool transmit)
-{
+{/*
   auto gpio_fd = ::open(PX4FMU_DEVICE_PATH, O_WRONLY);
   if (gpio_fd < 0)
   {
@@ -228,20 +236,24 @@ PortHandlerNuttx::controlGpio(bool transmit)
     close(gpio_fd);
     return false;
   }
-  close(gpio_fd);
+  close(gpio_fd);*/
   return true;
 }
 
 bool PortHandlerNuttx::setupPort(int cflag_baud)
 {
   // see src/px4/firmware/src/modules/mavlink/mavlink_main.cpp:630 for example
-
+  /*
   auto gpio_fd = ::open(PX4FMU_DEVICE_PATH, O_WRONLY);
   
   if (gpio_fd < 0)
   {
     PX4_ERR("Could not open GPIO gpio_fd.");
     return false;
+  }
+  else
+  {
+    PX4_INFO("GPIO filedes: %d", gpio_fd);
   }
 
   auto fault = ioctl(gpio_fd, GPIO_SET_OUTPUT, gpio_);
@@ -257,10 +269,14 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
   {
     PX4_ERR("Initial gpio receive failed");
     return false;
-  }
+  }*/
 
   // O_NOCTTY is defined as 0
-  socket_fd_ = ::open(port_name_, O_RDWR/*|O_NOCTTY*/|O_NONBLOCK);
+  socket_fd_ = ::open(port_name_,
+      O_RDWR
+    | O_NOCTTY
+    | O_NONBLOCK
+    );
 
   if (socket_fd_ < 0)
   {
@@ -274,8 +290,8 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
 
   bzero(&newtio, sizeof(newtio)); // clear struct for new port settings
   // cflag should not be set here. use cfsetispeed()
-  newtio.c_cflag = /*cflag_baud |*/ CS8 | CLOCAL | CREAD;
-  newtio.c_iflag = IGNPAR;
+  newtio.c_cflag = /*cflag_baud |*/ CS8 | /*CLOCAL |*/ CREAD;
+  newtio.c_iflag      = 0;
   newtio.c_oflag      = 0;
   newtio.c_lflag      = 0;
   newtio.c_cc[VTIME]  = 0;
@@ -314,6 +330,19 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
   else
   {
     PX4_INFO("Set tc attributes");
+    if (tcgetattr(socket_fd_, &oldtio) < 0)
+    {
+      PX4_ERR("getattr errno: %d", errno);
+    }
+    PX4_INFO("\nAfter setting\n"
+      "c: 0x%02X\n"
+      "i: 0x%02X\n"
+      "o: 0x%02X\n"
+      "l: 0x%02X\n",
+      oldtio.c_cflag,
+      oldtio.c_iflag,
+      oldtio.c_oflag,
+      oldtio.c_lflag);
   }
 
   tx_time_per_byte = (1000.0 / (double)baudrate_) * 10.0;
