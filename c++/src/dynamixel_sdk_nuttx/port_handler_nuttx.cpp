@@ -53,8 +53,8 @@
 using namespace dynamixel;
 
 PortHandlerNuttx::PortHandlerNuttx(const char *port_name, uint8_t gpio)
-  : socket_fd_(-1),
-    baudrate_(DEFAULT_BAUDRATE_),
+  : baudrate_(DEFAULT_BAUDRATE_),
+    _serial_port{port_name},
     packet_start_time_(0.0),
     packet_timeout_(0.0),
     tx_time_per_byte(0.0),
@@ -62,7 +62,7 @@ PortHandlerNuttx::PortHandlerNuttx(const char *port_name, uint8_t gpio)
 {
   gpio_ = 1 << (gpio-1);
   is_using_ = false;
-  setPortName(port_name);
+  //setPortName(port_name);
 }
 
 bool PortHandlerNuttx::openPort()
@@ -72,33 +72,31 @@ bool PortHandlerNuttx::openPort()
 
 void PortHandlerNuttx::closePort()
 {
-  if(socket_fd_ != -1)
-    ::close(socket_fd_);
-  socket_fd_ = -1;
+  _serial_port.close();
 }
 
 void PortHandlerNuttx::clearPort()
 {
-  tcflush(socket_fd_, TCIOFLUSH);
+  _serial_port.clear();
 }
 
 void PortHandlerNuttx::setPortName(const char *port_name)
 {
-  strcpy(port_name_, port_name);
+  //strcpy(port_name_, port_name);
+  PX4_ERR("setPortName not implemented.");
 }
 
 char *PortHandlerNuttx::getPortName()
 {
-  return port_name_;
+  return _serial_port.get_port_name();
 }
 
 // TODO: baud number ??
 bool PortHandlerNuttx::setBaudRate(const int baudrate)
 {
   // see src/modules/mavlink/mavlink_main.cpp:744 for example
-  int baud = getCFlagBaud(baudrate);
 
-  closePort();
+  int baud = getCFlagBaud(baudrate);
 
   if(baud <= 0)   // custom baudrate
   {
@@ -108,7 +106,6 @@ bool PortHandlerNuttx::setBaudRate(const int baudrate)
   }
   else
   {
-    baudrate_ = baudrate;
     return setupPort(baud);
   }
 }
@@ -120,16 +117,14 @@ int PortHandlerNuttx::getBaudRate()
 
 int PortHandlerNuttx::getBytesAvailable()
 {
-  int bytes_available;
-  ioctl(socket_fd_, FIONREAD, (unsigned long)&bytes_available);
-  return bytes_available;
+  return _serial_port.get_bytes_available();
 }
 
 int PortHandlerNuttx::readPort(uint8_t *packet, int length)
 {
   // See /src/modules/mavlink/mavlink_receiver.cpp:2130 for example
   // This is now somewhat equal to the example, but is not tested - glenn
-  return ::read(socket_fd_, packet, length);
+  return _serial_port.read(packet, length);
 }
 
 int PortHandlerNuttx::writePort(uint8_t *packet, int length)
@@ -149,15 +144,7 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
   }
 
   // UART
-  auto res = ::write(socket_fd_, packet, length);
-  if (res < 0)
-  {
-    PX4_ERR("Error writing to port. len: %d errno: %d - %s", length, errno, errno_str(errno));
-  }
-  else
-  {
-    PX4_INFO("phn: wrote %d, len: %d", res, length);
-  }
+  auto res = _serial_port.write(packet, length);
 
   // GPIO
   counter = MAX_GPIO_ATTEMPTS;
@@ -271,82 +258,12 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
     return false;
   }*/
 
-  // O_NOCTTY is defined as 0
-  socket_fd_ = ::open(port_name_,
-      O_RDWR
-    | O_NOCTTY
-    | O_NONBLOCK
-    );
-
-  if (socket_fd_ < 0)
-  {
-    PX4_ERR("Error opening serial port.");
-    return false;
-  }
-  PX4_INFO("serial_fd: %d");
-
-
-  struct termios newtio;
-
-  bzero(&newtio, sizeof(newtio)); // clear struct for new port settings
-  // cflag should not be set here. use cfsetispeed()
-  newtio.c_cflag = /*cflag_baud |*/ CS8 | /*CLOCAL |*/ CREAD;
-  newtio.c_iflag      = 0;
-  newtio.c_oflag      = 0;
-  newtio.c_lflag      = 0;
-  newtio.c_cc[VTIME]  = 0;
-  newtio.c_cc[VMIN]   = 0;
-  cfsetispeed(&newtio, cflag_baud);
-  cfsetospeed(&newtio, cflag_baud);
-
-  // clean the buffer and activate the settings for the
-  // auto flush_state = tcflush(socket_fd_, TCIFLUSH);
-  // if (flush_state < 0)
-  // {
-  //   PX4_ERR("Failed to flush. ERRNO: %d", errno);
-  // }
-
-  struct termios oldtio;
-  if (tcgetattr(socket_fd_, &oldtio) < 0)
-  {
-    PX4_ERR("getattr errno: %d", errno);
-  }
-  PX4_INFO("\n"
-    "c: 0x%02X\n"
-    "i: 0x%02X\n"
-    "o: 0x%02X\n"
-    "l: 0x%02X\n",
-    oldtio.c_cflag,
-    oldtio.c_iflag,
-    oldtio.c_oflag,
-    oldtio.c_lflag);
-
-  auto termios_state = tcsetattr(socket_fd_, TCSANOW, &newtio);
-  if (termios_state < 0)
-  {
-    PX4_ERR("tcsetattr error, errno: %d", errno);
-    return false;
-  }
-  else
-  {
-    PX4_INFO("Set tc attributes");
-    if (tcgetattr(socket_fd_, &oldtio) < 0)
-    {
-      PX4_ERR("getattr errno: %d", errno);
-    }
-    PX4_INFO("\nAfter setting\n"
-      "c: 0x%02X\n"
-      "i: 0x%02X\n"
-      "o: 0x%02X\n"
-      "l: 0x%02X\n",
-      oldtio.c_cflag,
-      oldtio.c_iflag,
-      oldtio.c_oflag,
-      oldtio.c_lflag);
-  }
+  _serial_port.close();
+  _serial_port.open();
+  auto res = _serial_port.setup(cflag_baud) == 0;
 
   tx_time_per_byte = (1000.0 / (double)baudrate_) * 10.0;
-  return true;
+  return res;
 }
 
 bool PortHandlerNuttx::setCustomBaudrate(int speed)

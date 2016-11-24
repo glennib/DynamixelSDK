@@ -35,6 +35,7 @@
 
 
 #include "dynamixel_sdk/port_handler.h"
+#include <drivers/serial_port/serial_port.h>
 
 namespace dynamixel
 {
@@ -44,9 +45,8 @@ namespace dynamixel
 class PortHandlerNuttx : public PortHandler
 {
  private:
-  int     socket_fd_;
   int     baudrate_;
-  char    port_name_[30];
+  serial_port::SerialPort _serial_port;
 
   double  packet_start_time_;
   double  packet_timeout_;
