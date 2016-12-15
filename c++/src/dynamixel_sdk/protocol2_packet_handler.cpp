@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #define TXPACKET_MAX_LEN (4 * 1024)
 #define RXPACKET_MAX_LEN (4 * 1024)
@@ -331,8 +332,15 @@ Protocol2PacketHandler::rxPacket(PortHandler * port, uint8_t * rxpacket) {
                                 // CRC16_L CRC16_H)
 
     while (true) {
-        rx_length +=
+        auto read_port_val =
             port->readPort(&rxpacket[rx_length], wait_length - rx_length);
+        if (read_port_val >= 0) {
+            rx_length += read_port_val;
+        } else {
+            PX4_ERR("Error reading serial port. Val=%d. errno=%d",
+                    read_port_val, errno);
+        }
+
         PX4_INFO("l=%d", rx_length);
         if (rx_length >= wait_length) {
             uint16_t idx = 0;

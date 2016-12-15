@@ -37,6 +37,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "dynamixel_sdk/protocol1_packet_handler.h"
+#include <errno.h>
+#include <px4_log.h>
 
 #define TXPACKET_MAX_LEN    (250)
 #define RXPACKET_MAX_LEN    (250)
@@ -182,7 +184,15 @@ int Protocol1PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket)
 
   while(true)
   {
-    rx_length += port->readPort(&rxpacket[rx_length], wait_length - rx_length);
+    auto read_port_val = port->readPort(&rxpacket[rx_length], wait_length - rx_length);
+    if (read_port_val >= 0)
+    {
+      rx_length += read_port_val;
+    }
+    else
+    {
+      //PX4_ERR("Error reading serial port. errno=%d", errno);
+    }
     if (rx_length >= wait_length)
     {
       uint8_t idx = 0;

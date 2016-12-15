@@ -124,7 +124,7 @@ int PortHandlerNuttx::readPort(uint8_t *packet, int length)
 {
   // See /src/modules/mavlink/mavlink_receiver.cpp:2130 for example
   // This is now somewhat equal to the example, but is not tested - glenn
-  return _serial_port.read(packet, length);
+  return _serial_port.read_timeout(packet, length, 1000);
 }
 
 int PortHandlerNuttx::writePort(uint8_t *packet, int length)
@@ -144,7 +144,7 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
   }
 
   // UART
-  auto res = _serial_port.write(packet, length);
+  auto res = _serial_port.write_sync(packet, length);
 
   // GPIO
   counter = MAX_GPIO_ATTEMPTS;
@@ -202,7 +202,7 @@ double PortHandlerNuttx::getTimeSinceStart()
 
 bool
 PortHandlerNuttx::controlGpio(bool transmit)
-{/*
+{
   auto gpio_fd = ::open(PX4FMU_DEVICE_PATH, O_WRONLY);
   if (gpio_fd < 0)
   {
@@ -223,14 +223,14 @@ PortHandlerNuttx::controlGpio(bool transmit)
     close(gpio_fd);
     return false;
   }
-  close(gpio_fd);*/
+  close(gpio_fd);
   return true;
 }
 
 bool PortHandlerNuttx::setupPort(int cflag_baud)
 {
   // see src/px4/firmware/src/modules/mavlink/mavlink_main.cpp:630 for example
-  /*
+  
   auto gpio_fd = ::open(PX4FMU_DEVICE_PATH, O_WRONLY);
   
   if (gpio_fd < 0)
@@ -256,7 +256,7 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
   {
     PX4_ERR("Initial gpio receive failed");
     return false;
-  }*/
+  }
 
   _serial_port.close();
   _serial_port.open();
