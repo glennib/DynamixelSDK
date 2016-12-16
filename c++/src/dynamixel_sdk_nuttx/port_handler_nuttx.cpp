@@ -46,7 +46,6 @@
 // TODO: TEMP
 #include <errno.h>
 #include <px4_log.h>
-#include "errno_str.h"
 
 #define LATENCY_TIMER   4  // msec (USB latency timer)
 
@@ -133,29 +132,29 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
   // This is now equal to the example, and should work, but is not tested - glenn
 
   // GPIO
-  auto counter = MAX_GPIO_ATTEMPTS;
-  while (!controlGpio(true) && counter--)
-  {
-    if (counter <= 0)
-    {
-      PX4_ERR("Could not set GPIO");
-      return -1;
-    }
-  }
+  // auto counter = MAX_GPIO_ATTEMPTS;
+  // while (!controlGpio(true) && counter--)
+  // {
+  //   if (counter <= 0)
+  //   {
+  //     PX4_ERR("Could not set GPIO");
+  //     return -1;
+  //   }
+  // }
 
   // UART
-  auto res = _serial_port.write_sync(packet, length);
+  auto res = _serial_port.write(packet, length);
 
   // GPIO
-  counter = MAX_GPIO_ATTEMPTS;
-  while (!controlGpio(false) && counter--)
-  {
-    if (counter <= 0)
-    {
-      PX4_ERR("Could not clear GPIO");
-      return -1;
-    }
-  }
+  // counter = MAX_GPIO_ATTEMPTS;
+  // while (!controlGpio(false) && counter--)
+  // {
+  //   if (counter <= 0)
+  //   {
+  //     PX4_ERR("Could not clear GPIO");
+  //     return -1;
+  //   }
+  // }
 
   return res;
 }
