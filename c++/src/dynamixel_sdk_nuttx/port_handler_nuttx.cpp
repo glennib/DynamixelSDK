@@ -132,29 +132,36 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
   // This is now equal to the example, and should work, but is not tested - glenn
 
   // GPIO
-  // auto counter = MAX_GPIO_ATTEMPTS;
-  // while (!controlGpio(true) && counter--)
-  // {
-  //   if (counter <= 0)
-  //   {
-  //     PX4_ERR("Could not set GPIO");
-  //     return -1;
-  //   }
-  // }
+  auto counter = MAX_GPIO_ATTEMPTS;
+  while (!controlGpio(true) && counter--)
+  {
+    if (counter <= 0)
+    {
+      PX4_ERR("Could not set GPIO");
+      return -1;
+    }
+  }
 
   // UART
   auto res = _serial_port.write(packet, length);
 
+  auto tx_remaining = _serial_port.get_tx_bytes_available();
+  while (tx_remaining > 0) {
+    PX4_INFO("Tx remaining: %d", tx_remaining);
+    usleep(5);
+    tx_remaining = _serial_port.get_tx_bytes_available();
+  }
+
   // GPIO
-  // counter = MAX_GPIO_ATTEMPTS;
-  // while (!controlGpio(false) && counter--)
-  // {
-  //   if (counter <= 0)
-  //   {
-  //     PX4_ERR("Could not clear GPIO");
-  //     return -1;
-  //   }
-  // }
+  counter = MAX_GPIO_ATTEMPTS;
+  while (!controlGpio(false) && counter--)
+  {
+    if (counter <= 0)
+    {
+      PX4_ERR("Could not clear GPIO");
+      return -1;
+    }
+  }
 
   return res;
 }
