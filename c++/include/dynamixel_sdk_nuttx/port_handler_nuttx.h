@@ -62,7 +62,7 @@ class PortHandlerNuttx : public PortHandler
   double  getCurrentTime(); // I think this works untouched - glenn
   double  getTimeSinceStart(); // This too
   
-  bool    controlGpio(bool transmit); // Custom. This should enable/disable gpio
+  bool    driveLines(bool transmit); // Custom. This should enable/disable gpio
 
  public:
   PortHandlerNuttx(const char *port_name, uint8_t gpio); // This works untouched

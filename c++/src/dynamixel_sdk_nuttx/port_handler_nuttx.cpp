@@ -133,7 +133,7 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
 
   // GPIO
   auto counter = MAX_GPIO_ATTEMPTS;
-  while (!controlGpio(true) && counter--)
+  while (!driveLines(true) && counter--)
   {
     if (counter <= 0)
     {
@@ -154,7 +154,7 @@ int PortHandlerNuttx::writePort(uint8_t *packet, int length)
 
   // GPIO
   counter = MAX_GPIO_ATTEMPTS;
-  while (!controlGpio(false) && counter--)
+  while (!driveLines(false) && counter--)
   {
     if (counter <= 0)
     {
@@ -207,7 +207,7 @@ double PortHandlerNuttx::getTimeSinceStart()
 }
 
 bool
-PortHandlerNuttx::controlGpio(bool transmit)
+PortHandlerNuttx::driveLines(bool transmit)
 {
   auto gpio_fd = ::open(PX4FMU_DEVICE_PATH, O_WRONLY);
   if (gpio_fd < 0)
@@ -258,7 +258,7 @@ bool PortHandlerNuttx::setupPort(int cflag_baud)
   }
   close(gpio_fd);
 
-  if (!controlGpio(false))
+  if (!driveLines(false))
   {
     PX4_ERR("Initial gpio receive failed");
     return false;
